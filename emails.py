@@ -48,19 +48,19 @@ async def send_email(email: List, instance: User):
                     <h3>Account Verification</h3>
                     <br>
 
-                    <p>Thanks for choosing EasyShopas, please click on the button below to verify your account</p>
+                    <p>Thanks for choosing SkillHive, please click on the button below to verify your account</p>
                     
                     <a style="margin-top: 1rem; padding: 1rem; border-radius: 0.5rem; font-size: 1rem; text-decoration: none; background: #0275d8; color:white;"
                     href="http://localhost:8001/verification/?token={token}">Verify your email</a>
 
-                    </p> Please kindly ignore this email if you did not register for EasyShopas and nothing will happend. Thanks</p>
+                    </p> Please kindly ignore this email if you did not register for SkillHive and nothing will happend. Thanks</p>
                 </div>
             </body>
         </html>
     """
     
     message = MessageSchema(
-        subject="EasyShopas Account Verification",
+        subject="SkillHive Account Verification",
         recipients=email,
         body= template,
         subtype="html")
