@@ -1,27 +1,48 @@
 <!-- LINK TO TOTURIALS -->
+
 https://www.youtube.com/watch?v=Mt6VKXRR_iE&list=PLU7aW4OZeUzymX37MosNIT44FLnF-OKdB&index=2
 
 <!-- how to create a virtual environment -->
+
 py -3 -m venv venv
 
 <!-- to use the created environment -->
+
 select the interpretator
 .venv\Scripts\python.exe
 
 <!-- to activate interpretator -->
+
 type in the terminal the below
 venv\Scripts\activate.bat
 
 <!-- Install FastAPI -->
+
 web: fastapi.tiangolo.com/tutorial/
 pip install fastapi[all]
 
 <!-- run it  -->
+
 uvicorn main:app
-uvicorn app.main:app --reload  
+uvicorn app.main:app --reload
 
 <!-- Using Tortoise ORM -->
+
 https://tortoise.github.io/
 
 pip install tortoise-orm
 
+<!-- Email Used -->
+
+https://temp-mail.org/en/
+wepokol399@mcatag.com
+
+<!-- EndPoint Documentation -->
+
+<!-- To hash password -->
+
+pip install "passlib[bcrypt]"
+
+<!-- Database browser for sqlite3 -->
+
+Download DB Browser to view sqlite databases
