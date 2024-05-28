@@ -44,5 +44,21 @@ wepokol399@mcatag.com
 pip install "passlib[bcrypt]"
 
 <!-- Database browser for sqlite3 -->
-
 Download DB Browser to view sqlite databases
+https://sqlitebrowser.org/dl/#windows
+
+<!-- Sending emails -->
+We should fastapi-mail 
+https://pypi.org/project/fastapi-mail/
+pip install fastapi-mail
+
+<!-- Installed a .env -->
+https://pypi.org/project/python-dotenv/
+pip install python-dotenv
+
+<!-- To generate a random token -->
+>>> import secrets
+>>> secrets.token_hex(20)
+
+<!-- Installed pyjwt -->
+pip install pyjwt
