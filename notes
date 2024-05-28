@@ -71,3 +71,5 @@ pip install --upgrade Pillow
 
 pip install aiofiles
 
+<!-- Create a requirement.txt file -->
+pip freeze > requirements.txt

@@ -26,8 +26,18 @@ from fastapi.responses import HTMLResponse
 # Template
 from fastapi.templating import Jinja2Templates
 
+# image upload
+from fastapi import File, UploadFile
+import secrets
+from fastapi.staticfiles import StaticFiles
+from PIL import Image
+
 app = FastAPI()
+
 oath2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+
+# static file setup config
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Token
 @app.post('/token')
@@ -122,6 +132,48 @@ async def email_verification(request: Request, token: str):
                 detail="Invalid token or expired token",
                 headers={"WWW-Authenticate": "Bearer"}
             )
+
+# Image route
+@app.post("/uploadfile/profile")
+async def create_upload_file(file: UploadFile = File(...), user: user_pydantic = Depends(get_current_user)):
+    FILEPATH = "./static/images/"
+    filename = file.filename
+    extension = filename.split(".")[1]
+
+    if extension not in ["png", "jpg"]:
+         return {"status" : "error", "detail" : "File extension not allowed"}
+
+    token_name = secrets.token_hex(10)+"."+extension
+    genetated_name = FILEPATH + token_name
+    file_content = await file.read() 
+
+    with open(genetated_name, "wb") as file:
+         file.write(file_content)
+
+    # Pillow to reduce image size
+    img = Image.open(genetated_name)
+    img = img.resize(size = (200, 200))
+    img.save(genetated_name)
+
+    file.close()
+
+    business = await Business.get(owner = user)
+    owner = await business.owner
+
+    if owner == user:
+         business.logo = token_name
+         await business.save()
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated to perform this action",
+            headers={"WWW-Authenticate": "Bearer"}
+            )
+    
+    file_url = "localhost:8001" + genetated_name[1:]
+    return {"status" : "ok", "filename": file_url}
+         
 
 # Test route
 @app.get("/")
