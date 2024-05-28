@@ -62,3 +62,12 @@ pip install python-dotenv
 
 <!-- Installed pyjwt -->
 pip install pyjwt
+
+<!-- To upload a profile picture -->
+pip install python-multipart
+
+https://pillow.readthedocs.io/en/stable/installation/basic-installation.html
+pip install --upgrade Pillow
+
+pip install aiofiles
+

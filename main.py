@@ -1,7 +1,6 @@
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, Depends
 from tortoise.contrib.fastapi import register_tortoise
 from models import *
-from authentication import get_hashed_password, very_token
 import logging
 import jwt
 from jose import JWTError, jwt
@@ -10,7 +9,10 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from tortoise import models
 
-
+# Authentication
+# from authentication import get_hashed_password, very_token
+from authentication import*
+from fastapi.security import(OAuth2PasswordBearer, OAuth2PasswordRequestForm)
 
 # signals to create business upon registering user
 from tortoise.signals import post_save
@@ -25,8 +27,47 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+oath2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+
+# Token
+@app.post('/token')
+async def genetate_token(request_form: OAuth2PasswordRequestForm = Depends()):
+    token = await token_generator(request_form.username, request_form.password)
+    return {"access_token": token, "token_type" : "bearer"}
+
+# Getting current user
+async def get_current_user(token: str = Depends(oath2_scheme)):
+    try:
+        payload = jwt.decode(token, config_credential['SECRET'], algorithms=['HS256'])
+        user = await User.get(id = payload.get("id")) 
+    except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token or expired token",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+    return await user
+    
 
 logging.basicConfig(level=logging.INFO)
+
+# User Login
+@app.post("/login")
+async def user_login(user: user_pydanticIn = Depends(get_current_user)):
+    business = await Business.get(owner = user)
+
+    return {
+        "status": "ok",
+        "data": 
+        {
+             "username" : user.username,
+             "email": user.email,
+             "verified": user.is_verified,
+             "joined_date": user.join_date.strftime("%b %d %Y")
+        }
+    }
+
+     
 
 # create business upon registering user
 @post_save(User)
@@ -45,6 +86,7 @@ async def create_business(
         # sending email
         await send_email([instance.email], instance)
 
+# Creating User
 @app.post("/registration")
 async def user_registration(user: user_pydanticIn):
     user_info = user.dict(exclude_unset=True)
@@ -64,6 +106,7 @@ async def user_registration(user: user_pydanticIn):
 
 templates = Jinja2Templates(directory="templates")
 
+# Email verification
 @app.get("/verification", response_class=HTMLResponse)
 async def email_verification(request: Request, token: str):
     user = await very_token(token)
@@ -80,6 +123,7 @@ async def email_verification(request: Request, token: str):
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
+# Test route
 @app.get("/")
 def index():
     return {"Message": "Welcome to eCommerce API using FastAPI and Tortoise"}
