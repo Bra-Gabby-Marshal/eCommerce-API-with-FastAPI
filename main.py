@@ -65,6 +65,9 @@ logging.basicConfig(level=logging.INFO)
 @app.post("/login")
 async def user_login(user: user_pydanticIn = Depends(get_current_user)):
     business = await Business.get(owner = user)
+    # profile image in login
+    logo = business.logo
+    logo_path = "localhost:8001/static/images/"+logo
 
     return {
         "status": "ok",
@@ -73,7 +76,8 @@ async def user_login(user: user_pydanticIn = Depends(get_current_user)):
              "username" : user.username,
              "email": user.email,
              "verified": user.is_verified,
-             "joined_date": user.join_date.strftime("%b %d %Y")
+             "joined_date": user.join_date.strftime("%b %d %Y"),
+             "logo": logo_path
         }
     }
 
@@ -133,7 +137,7 @@ async def email_verification(request: Request, token: str):
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-# Image route
+# Image upload route
 @app.post("/uploadfile/profile")
 async def create_upload_file(file: UploadFile = File(...), user: user_pydantic = Depends(get_current_user)):
     FILEPATH = "./static/images/"
@@ -174,6 +178,48 @@ async def create_upload_file(file: UploadFile = File(...), user: user_pydantic =
     file_url = "localhost:8001" + genetated_name[1:]
     return {"status" : "ok", "filename": file_url}
          
+# Product upload route
+@app.post("/uploadfile/product/{id}")
+async def create_upload_file( id: int, file: UploadFile = File(...), user: user_pydantic = Depends(get_current_user)):
+    FILEPATH = "./static/products/"
+    filename = file.filename
+    extension = filename.split(".")[1]
+
+    if extension not in ["png", "jpg"]:
+         return {"status" : "error", "detail" : "File extension not allowed"}
+
+    token_name = secrets.token_hex(10)+"."+extension
+    genetated_name = FILEPATH + token_name
+    file_content = await file.read() 
+
+    with open(genetated_name, "wb") as file:
+         file.write(file_content)
+
+    # Pillow to reduce image size
+    img = Image.open(genetated_name)
+    img = img.resize(size = (200, 200))
+    img.save(genetated_name)
+
+    file.close()
+
+    product = await Product.get(id = id)
+    business = await product.business
+    owner = await business.owner
+
+    if owner == user:
+        product.product_image = token_name
+        await product.save()
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated to perform this action",
+            headers={"WWW-Authenticate": "Bearer"}
+            )
+    
+    file_url = "localhost:8001" + genetated_name[1:]
+    return {"status" : "ok", "filename": file_url}
+    
 
 # Test route
 @app.get("/")

@@ -37,8 +37,8 @@ pip install tortoise-orm
 https://temp-mail.org/en/
 wepokol399@mcatag.com
 
-<!-- EndPoint Documentation -->
-
+<!-- API EndPoint Documentation -->
+uvicorn main:app --reload --host 127.0.0.1 --port 8001                                                                                                  
 <!-- To hash password -->
 
 pip install "passlib[bcrypt]"
