@@ -220,6 +220,81 @@ async def create_upload_file( id: int, file: UploadFile = File(...), user: user_
     file_url = "localhost:8001" + genetated_name[1:]
     return {"status" : "ok", "filename": file_url}
     
+# Product CRUD functionalities
+
+# Create Product
+@app.post("/products")
+async def add_new_product(product: product_pydanticIn, 
+                            user: user_pydantic = Depends(get_current_user)):
+    product = product.dict(exclude_unset = True)
+    # to avoid division by zero error
+    if product['original_price'] > 0:
+        product["percentage_discount"] = ((product["original_price"] - product['new_price'] ) / product['original_price']) * 100
+
+    product_obj = await Product.create(**product, business = user)
+    product_obj = await product_pydantic.from_tortoise_orm(product_obj)
+    return {"status" : "ok", "data" : product_obj}
+
+
+# Get All Products
+@app.get("/products")
+async def get_products():
+    response = await product_pydantic.from_queryset(Product.all())
+    return {"status" : "ok", "data" : response}
+
+
+# Get a specific product
+@app.get("/product/{id}")
+async def get_product(id: int):
+    product = await Product.get(id = id)
+    business = await product.business
+    owner = await business.owner
+    response = await product_pydantic.from_queryset_single(Product.get(id = id))
+
+    return {
+         "status": "ok",
+         "data": {
+              "product_details": response,
+              "business_details": {
+                   "name": business.business_name,
+                   "city": business.city,
+                   "region": business.region,
+                   "description": business.business_description,
+                   "logo": business.logo,
+                   "owner_id": owner.id,
+                   "email": owner.email,
+                   "join_date": owner.join_date.strftime("%b %d %Y")
+              }
+         }
+    }
+
+# Delete a Product
+@app.delete("/products/{id}")
+async def delete_product(id: int, user: user_pydantic = Depends(get_current_user)):
+    try:
+        product = await Product.get(id=id).prefetch_related('business', 'business__owner')
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
+    business = product.business
+    owner = business.owner
+
+    if user == owner:
+        await product.delete()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated to perform this action",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    return {"status": "ok"}
+
+    
+
 
 # Test route
 @app.get("/")
