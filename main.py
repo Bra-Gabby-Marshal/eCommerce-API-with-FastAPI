@@ -268,6 +268,45 @@ async def get_product(id: int):
          }
     }
 
+
+# Update Product
+@app.put("/product/{id}")
+async def update_product(id: int, update_info: product_pydanticIn, user: user_pydantic = Depends(get_current_user)):
+    product = await Product.get_or_none(id=id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    business = await product.business
+    if not business:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found")
+
+    owner = await business.owner
+    if not owner:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Owner not found")
+
+    update_info = update_info.dict(exclude_unset=True)
+    update_info["date_published"] = datetime.now(timezone.utc)
+
+    if user == owner:
+        if "original_price" in update_info and update_info["original_price"] <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Original price must be greater than zero")
+        if "new_price" in update_info and update_info["new_price"] < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New price cannot be negative")
+
+        if update_info["original_price"] != 0:
+            update_info["percentage_discount"] = ((update_info["original_price"] - update_info["new_price"]) / update_info["original_price"]) * 100
+        
+        product = await product.update_from_dict(update_info)
+        await product.save()
+        response = await product_pydantic.from_tortoise_orm(product)
+        return {"status": "ok", "data": response}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated to perform this action or invalid user input",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
 # Delete a Product
 @app.delete("/products/{id}")
 async def delete_product(id: int, user: user_pydantic = Depends(get_current_user)):
@@ -293,6 +332,24 @@ async def delete_product(id: int, user: user_pydantic = Depends(get_current_user
     
     return {"status": "ok"}
 
+# Update business details
+@app.put("/business/{id}")
+async def update_business(id: int, update_business: business_pydanticIn, user: user_pydantic = Depends(get_current_user)):
+    update_business = update_business.dict()
+    business = await Business.get(id = id)
+    business_owner = await business.owner
+
+    if user == business_owner:
+        await business.update_from_dict(update_business)
+        business.save()
+        response = await business_pydantic.from_tortoise_orm(business)
+        return {"status": "ok", "data": response}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated to perform this action",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     
 
 
